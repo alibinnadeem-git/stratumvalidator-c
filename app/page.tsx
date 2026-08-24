@@ -1,0 +1,1 @@
+export default function Page(){return <main style={{fontFamily:'system-ui',padding:32}}><h1>STRATUM Validator C</h1><p>Serverless validator for stratum-devnet-1.</p><p>Status: <a href="/v1/status">/v1/status</a></p></main>}
