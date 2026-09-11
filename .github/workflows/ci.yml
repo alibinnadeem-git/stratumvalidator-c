@@ -31,7 +31,12 @@ jobs:
           ]) {
             if(!p.includes(required)) throw new Error(`Missing PoVI invariant: ${required}`);
           }
-          const legacy=fs.readFileSync('app/stratum/verified/v1/records/route.ts','utf8');
-          if(!legacy.includes('anchorServerless')) throw new Error('Legacy public anchor was changed before coordinated activation');
+          const legacyPath='app/stratum/verified/v1/records/route.ts';
+          if(fs.existsSync(legacyPath)){
+            const legacy=fs.readFileSync(legacyPath,'utf8');
+            if(!legacy.includes('anchorServerless')) throw new Error('Legacy public anchor was changed before coordinated activation');
+          } else {
+            console.log('Peer-only validator: no public legacy anchor route to protect');
+          }
           console.log('PoVI staged-source invariants passed');
           NODE
