@@ -28,15 +28,32 @@ jobs:
             "sv_povi_messages",
             "Equivocation protection",
             "poviConformant:false"
-          ]) {
-            if(!p.includes(required)) throw new Error(`Missing PoVI invariant: ${required}`);
-          }
+          ]) if(!p.includes(required)) throw new Error(`Missing PoVI invariant: ${required}`);
           const legacyPath='app/stratum/verified/v1/records/route.ts';
           if(fs.existsSync(legacyPath)){
             const legacy=fs.readFileSync(legacyPath,'utf8');
             if(!legacy.includes('anchorServerless')) throw new Error('Legacy public anchor was changed before coordinated activation');
-          } else {
-            console.log('Peer-only validator: no public legacy anchor route to protect');
-          }
+          } else console.log('Peer-only validator: no public legacy anchor route to protect');
           console.log('PoVI staged-source invariants passed');
+          NODE
+      - name: Validator registry source invariants
+        run: |
+          node - <<'NODE'
+          const fs=require('fs');
+          const r=fs.readFileSync('lib/server/validator-registry.ts','utf8');
+          for(const required of [
+            "'CANDIDATE','ACTIVE','DEGRADED','QUARANTINED','RETIRED','REVOKED'",
+            "'CONSENSUS','VRF','TRANSPORT'",
+            "authority:'PLAN_ONLY'",
+            "authoritativeForConsensus:false",
+            "activationPolicy:'GOVERNED_FUTURE_HEIGHT'",
+            "quorumOfflinePolicy:'QUORUM_IS_NOT_LOWERED_FOR_OFFLINE_VALIDATORS'",
+            "enrollment_code_hash",
+            "UNIQUE(chain_id,friendly_label)",
+            "UNIQUE(chain_id,identity_uuid)"
+          ]) if(!r.includes(required)) throw new Error(`Missing validator-registry invariant: ${required}`);
+          if(r.includes('PRIVATE_KEY')) throw new Error('Validator registry must never handle private keys');
+          const route=fs.readFileSync('app/v1/validators/route.ts','utf8');
+          if(/export\s+async\s+function\s+POST/.test(route)) throw new Error('Public validator registry route must remain read-only');
+          console.log('Redbook validator registry staged-source invariants passed');
           NODE
