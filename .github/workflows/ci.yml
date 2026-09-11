@@ -1,0 +1,37 @@
+name: STRATUM Validator PoVI CI
+on:
+  pull_request:
+  push:
+    branches-ignore: [main]
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install --no-audit --no-fund
+      - name: TypeScript integrity
+        run: npx tsc --noEmit
+      - name: Production build
+        run: npm run build
+      - name: PoVI source invariants
+        run: |
+          node - <<'NODE'
+          const fs=require('fs');
+          const p=fs.readFileSync('lib/server/povi.ts','utf8');
+          for(const required of [
+            "Math.floor((2*activeValidatorCount)/3)+1",
+            "STRATUM/POVI/VERIFY/1",
+            "STRATUM/POVI/COMMIT/1",
+            "sv_povi_messages",
+            "Equivocation protection",
+            "poviConformant:false"
+          ]) {
+            if(!p.includes(required)) throw new Error(`Missing PoVI invariant: ${required}`);
+          }
+          const legacy=fs.readFileSync('app/stratum/verified/v1/records/route.ts','utf8');
+          if(!legacy.includes('anchorServerless')) throw new Error('Legacy public anchor was changed before coordinated activation');
+          console.log('PoVI staged-source invariants passed');
+          NODE
